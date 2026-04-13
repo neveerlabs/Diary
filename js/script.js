@@ -283,7 +283,7 @@ const app = createApp({
         </div>
         <div class="form-row">
           <div><label>URL Media (pisah koma)</label><input v-model="newPost.mediaUrls" placeholder="https://...jpg, https://...mp4"></div>
-          <div><label>Like awal</label><input type="number" min="0" v-model.number="newPost.likes"></div>
+          <div><label>Jumlah Like</label><input type="number" min="0" v-model.number="newPost.likes"></div>
         </div>
         <div style="display:flex; gap:1rem; justify-content:flex-end">
           <button class="btn btn-outline" @click="newPost = {content:'', mediaUrls:'', likes:0}">Bersihkan</button>
@@ -356,10 +356,13 @@ const app = createApp({
 
           <div class="post-actions">
             <div class="action-group">
-              <button class="action-btn" @click="toggleLike(post)">
-                <svg v-if="post.likedByUser" viewBox="0 0 24 24" fill="#f43f5e" stroke="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              </button>
+              <div class="like-wrapper">
+                <button class="action-btn" @click="toggleLike(post)">
+                  <svg v-if="post.likedByUser" viewBox="0 0 24 24" fill="#f43f5e" stroke="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </button>
+                <span v-if="post.likes > 0" class="like-count">{{ post.likes }}</span>
+              </div>
               <button class="action-btn" @click="post.showComments = !post.showComments">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </button>
@@ -380,8 +383,6 @@ const app = createApp({
               {{ expandedPosts.has(post.id) ? 'Lebih sedikit...' : 'Selengkapnya...' }}
             </button>
           </div>
-
-          <div class="post-likes" v-if="post.likes > 0">{{ post.likes }} suka</div>
 
           <div v-if="post.showComments" class="comment-section">
             <ul class="comment-list">
