@@ -1,8 +1,6 @@
 const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
 
 const API_BASE = "/api";
-const STORAGE_KEY_LIKED_POSTS = "diary_liked_posts";
-const STORAGE_KEY_LIKED_COMMENTS = "diary_liked_comments";
 
 const app = createApp({
   setup() {
@@ -27,33 +25,6 @@ const app = createApp({
     const videoObservers = new Map();
     const videoElements = new Map();
 
-    const getLikedPostsFromStorage = () => {
-      try {
-        return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_LIKED_POSTS) || "[]"));
-      } catch {
-        return new Set();
-      }
-    };
-
-    const getLikedCommentsFromStorage = () => {
-      try {
-        return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_LIKED_COMMENTS) || "[]"));
-      } catch {
-        return new Set();
-      }
-    };
-
-    const saveLikedPostsToStorage = (likedSet) => {
-      localStorage.setItem(STORAGE_KEY_LIKED_POSTS, JSON.stringify([...likedSet]));
-    };
-
-    const saveLikedCommentsToStorage = (likedSet) => {
-      localStorage.setItem(STORAGE_KEY_LIKED_COMMENTS, JSON.stringify([...likedSet]));
-    };
-
-    const likedPosts = ref(getLikedPostsFromStorage());
-    const likedComments = ref(getLikedCommentsFromStorage());
-
     const formatNumber = (num) => {
       if (num < 1000) return num.toString();
       if (num < 1000000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
@@ -69,12 +40,12 @@ const app = createApp({
           currentMediaIndex: 0,
           mediaMuted: p.media_urls ? p.media_urls.map(() => false) : [],
           comments: p.comments || [],
-          likedByUser: likedPosts.value.has(p.id),
+          likedByUser: p.likedByUser || false,
         }));
         posts.value.forEach(post => {
           post.comments = post.comments.map(c => ({
             ...c,
-            likedByUser: likedComments.value.has(c.id),
+            likedByUser: c.likedByUser || false,
             likes: c.likes || 0,
           }));
         });
@@ -147,17 +118,14 @@ const app = createApp({
     const toggleLike = async (post) => {
       try {
         if (post.likedByUser) {
-          await axios.post(`${API_BASE}/posts/${post.id}/unlike`);
-          post.likes = Math.max(0, post.likes - 1);
+          const res = await axios.post(`${API_BASE}/posts/${post.id}/unlike`);
+          post.likes = res.data.likes;
           post.likedByUser = false;
-          likedPosts.value.delete(post.id);
         } else {
-          await axios.post(`${API_BASE}/posts/${post.id}/like`);
-          post.likes += 1;
+          const res = await axios.post(`${API_BASE}/posts/${post.id}/like`);
+          post.likes = res.data.likes;
           post.likedByUser = true;
-          likedPosts.value.add(post.id);
         }
-        saveLikedPostsToStorage(likedPosts.value);
       } catch (err) {
         console.error(err);
       }
@@ -236,17 +204,14 @@ const app = createApp({
     const toggleCommentLike = async (comment) => {
       try {
         if (comment.likedByUser) {
-          await axios.post(`${API_BASE}/posts/comments/${comment.id}/unlike`);
-          comment.likes = Math.max(0, (comment.likes || 0) - 1);
+          const res = await axios.post(`${API_BASE}/posts/comments/${comment.id}/unlike`);
+          comment.likes = res.data.likes;
           comment.likedByUser = false;
-          likedComments.value.delete(comment.id);
         } else {
-          await axios.post(`${API_BASE}/posts/comments/${comment.id}/like`);
-          comment.likes = (comment.likes || 0) + 1;
+          const res = await axios.post(`${API_BASE}/posts/comments/${comment.id}/like`);
+          comment.likes = res.data.likes;
           comment.likedByUser = true;
-          likedComments.value.add(comment.id);
         }
-        saveLikedCommentsToStorage(likedComments.value);
       } catch (err) {
         console.error(err);
       }
