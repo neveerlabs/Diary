@@ -1,4 +1,4 @@
-const { createApp, ref, reactive, computed, onMounted } = Vue;
+const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
 
 const API_BASE = "/api";
 const STORAGE_KEY_LIKED_POSTS = "diary_liked_posts";
@@ -24,6 +24,9 @@ const app = createApp({
     });
 
     const expandedPosts = ref(new Set());
+    const videoObservers = new Map();
+    const activeVideos = new Set();
+    const videoElements = new Map();
 
     const getLikedPostsFromStorage = () => {
       try {
@@ -52,6 +55,12 @@ const app = createApp({
     const likedPosts = ref(getLikedPostsFromStorage());
     const likedComments = ref(getLikedCommentsFromStorage());
 
+    const formatNumber = (num) => {
+      if (num < 1000) return num.toString();
+      if (num < 1000000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    };
+
     const fetchPosts = async () => {
       try {
         const res = await axios.get(`${API_BASE}/posts`);
@@ -70,6 +79,7 @@ const app = createApp({
             likes: c.likes || 0,
           }));
         });
+        setTimeout(() => setupVideoObservers(), 100);
       } catch (err) {
         console.error(err);
       }
@@ -245,16 +255,17 @@ const app = createApp({
 
     const nextMedia = (post) => {
       if (post.media_urls && post.media_urls.length > 0) {
-        post.currentMediaIndex =
-          (post.currentMediaIndex + 1) % post.media_urls.length;
+        if (post.currentMediaIndex < post.media_urls.length - 1) {
+          post.currentMediaIndex++;
+        }
       }
     };
 
     const prevMedia = (post) => {
       if (post.media_urls && post.media_urls.length > 0) {
-        post.currentMediaIndex =
-          (post.currentMediaIndex - 1 + post.media_urls.length) %
-          post.media_urls.length;
+        if (post.currentMediaIndex > 0) {
+          post.currentMediaIndex--;
+        }
       }
     };
 
@@ -294,7 +305,84 @@ const app = createApp({
       Object.assign(newPost, { content: "", mediaUrls: "", likes: 0 });
     };
 
-    onMounted(fetchPosts);
+    const handleVideoClick = (event, post, index) => {
+      const video = event.currentTarget;
+      if (video.paused) {
+        pauseOtherVideos(video);
+        video.play();
+      } else {
+        video.pause();
+      }
+    };
+
+    const handleDoubleClickLike = (event, post) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const heart = document.createElement('div');
+      heart.className = 'double-click-heart';
+      heart.style.left = x + 'px';
+      heart.style.top = y + 'px';
+      heart.innerHTML = '<svg viewBox="0 0 24 24" fill="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+      event.currentTarget.appendChild(heart);
+      setTimeout(() => heart.remove(), 800);
+      if (!post.likedByUser) {
+        toggleLike(post);
+      }
+    };
+
+    const setupVideoObservers = () => {
+      videoObservers.forEach((observer, id) => observer.disconnect());
+      videoObservers.clear();
+      videoElements.clear();
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const video = entry.target;
+          const postId = video.dataset.postId;
+          const index = video.dataset.index;
+          if (entry.isIntersecting) {
+            pauseOtherVideos(video);
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      }, { threshold: 0.5 });
+      document.querySelectorAll('video').forEach(video => {
+        observer.observe(video);
+        videoObservers.set(video.id, observer);
+        videoElements.set(video.id, video);
+      });
+    };
+
+    const pauseOtherVideos = (currentVideo) => {
+      videoElements.forEach(video => {
+        if (video !== currentVideo && !video.paused) {
+          video.pause();
+        }
+      });
+    };
+
+    const handleVideoTouchSpeed = (event, video) => {
+      if (!('ontouchstart' in window)) return;
+      const rect = video.getBoundingClientRect();
+      const touchX = event.touches[0].clientX - rect.left;
+      if (touchX < rect.width / 2) {
+        video.playbackRate = 2.0;
+      }
+    };
+
+    const resetVideoSpeed = (video) => {
+      video.playbackRate = 1.0;
+    };
+
+    onMounted(() => {
+      fetchPosts();
+    });
+
+    onUnmounted(() => {
+      videoObservers.forEach(observer => observer.disconnect());
+    });
 
     const formatDate = (iso) =>
       new Date(iso).toLocaleString("id-ID", {
@@ -336,6 +424,11 @@ const app = createApp({
       toggleCommentLike,
       openCreatePostModal,
       closeCreatePostModal,
+      formatNumber,
+      handleVideoClick,
+      handleDoubleClickLike,
+      handleVideoTouchSpeed,
+      resetVideoSpeed,
     };
   },
   template: `
@@ -347,8 +440,8 @@ const app = createApp({
         <div class="header-actions">
           <div class="stats">
             <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> {{ totalStats.posts }}</span>
-            <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> {{ totalStats.likes }}</span>
-            <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {{ totalStats.comments }}</span>
+            <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> {{ formatNumber(totalStats.likes) }}</span>
+            <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {{ formatNumber(totalStats.comments) }}</span>
           </div>
           <button class="add-post-btn" @click="openCreatePostModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
@@ -383,9 +476,9 @@ const app = createApp({
           <div v-if="post.media_urls && post.media_urls.length > 0" class="media-container small">
             <div class="media-slider" :style="{ transform: 'translateX(-' + (post.currentMediaIndex || 0) * 100 + '%)' }">
               <div v-for="(url, idx) in post.media_urls" class="media-slide">
-                <img v-if="!isVideo(url)" :src="url" class="post-media" @dblclick="toggleLike(post)">
-                <div v-else class="video-wrapper">
-                  <video :id="'video-'+post.id+'-'+idx" :src="url" class="post-media" muted :autoplay="idx === post.currentMediaIndex" loop playsinline @dblclick="toggleLike(post)"></video>
+                <img v-if="!isVideo(url)" :src="url" class="post-media" @dblclick="handleDoubleClickLike($event, post)">
+                <div v-else class="video-wrapper" @dblclick="handleDoubleClickLike($event, post)">
+                  <video :id="'video-'+post.id+'-'+idx" :data-post-id="post.id" :data-index="idx" :src="url" class="post-media" muted :autoplay="idx === post.currentMediaIndex" loop playsinline @click="handleVideoClick($event, post, idx)" @touchstart="handleVideoTouchSpeed($event, $event.target)" @touchend="resetVideoSpeed($event.target)" @touchcancel="resetVideoSpeed($event.target)"></video>
                   <button class="mute-btn" @click.stop="toggleMute(post, idx)">
                     <svg v-if="post.mediaMuted && post.mediaMuted[idx]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
                     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
@@ -393,8 +486,8 @@ const app = createApp({
                 </div>
               </div>
             </div>
-            <button v-if="post.media_urls.length > 1" class="slider-nav prev" @click.stop="prevMedia(post)">‹</button>
-            <button v-if="post.media_urls.length > 1" class="slider-nav next" @click.stop="nextMedia(post)">›</button>
+            <button v-if="post.media_urls.length > 1 && post.currentMediaIndex > 0" class="slider-nav prev" @click.stop="prevMedia(post)">‹</button>
+            <button v-if="post.media_urls.length > 1 && post.currentMediaIndex < post.media_urls.length - 1" class="slider-nav next" @click.stop="nextMedia(post)">›</button>
             <div v-if="post.media_urls.length > 1" class="slider-dots">
               <span v-for="(u, i) in post.media_urls" :key="i" class="dot" :class="{ active: i === (post.currentMediaIndex || 0) }" @click="post.currentMediaIndex = i"></span>
             </div>
@@ -416,13 +509,13 @@ const app = createApp({
                   <svg v-if="post.likedByUser" viewBox="0 0 24 24" fill="#f43f5e" stroke="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                   <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </button>
-                <span v-if="post.likes > 0" class="like-count">{{ post.likes }}</span>
+                <span v-if="post.likes > 0" class="like-count">{{ formatNumber(post.likes) }}</span>
               </div>
               <div class="comment-wrapper">
                 <button class="action-btn" @click="openCommentModal(post)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </button>
-                <span v-if="post.comments.length > 0" class="comment-count">{{ post.comments.length }}</span>
+                <span v-if="post.comments.length > 0" class="comment-count">{{ formatNumber(post.comments.length) }}</span>
               </div>
               <button class="action-btn" @click="openEditModal(post)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
