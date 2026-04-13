@@ -25,7 +25,6 @@ const app = createApp({
 
     const expandedPosts = ref(new Set());
     const videoObservers = new Map();
-    const activeVideos = new Set();
     const videoElements = new Map();
 
     const getLikedPostsFromStorage = () => {
@@ -68,7 +67,7 @@ const app = createApp({
           ...p,
           showComments: false,
           currentMediaIndex: 0,
-          mediaMuted: p.media_urls ? p.media_urls.map(() => true) : [],
+          mediaMuted: p.media_urls ? p.media_urls.map(() => false) : [],
           comments: p.comments || [],
           likedByUser: likedPosts.value.has(p.id),
         }));
@@ -79,7 +78,7 @@ const app = createApp({
             likes: c.likes || 0,
           }));
         });
-        setTimeout(() => setupVideoObservers(), 100);
+        setTimeout(() => setupVideoObservers(), 200);
       } catch (err) {
         console.error(err);
       }
@@ -257,6 +256,7 @@ const app = createApp({
       if (post.media_urls && post.media_urls.length > 0) {
         if (post.currentMediaIndex < post.media_urls.length - 1) {
           post.currentMediaIndex++;
+          handleMediaChange(post);
         }
       }
     };
@@ -265,12 +265,34 @@ const app = createApp({
       if (post.media_urls && post.media_urls.length > 0) {
         if (post.currentMediaIndex > 0) {
           post.currentMediaIndex--;
+          handleMediaChange(post);
         }
       }
     };
 
+    const handleMediaChange = (post) => {
+      setTimeout(() => {
+        const currentUrl = post.media_urls[post.currentMediaIndex];
+        if (isVideo(currentUrl)) {
+          const video = document.getElementById(`video-${post.id}-${post.currentMediaIndex}`);
+          if (video) {
+            video.currentTime = 0;
+            if (isElementInViewport(video)) {
+              pauseOtherVideos(video);
+              video.play().catch(() => {});
+            }
+          }
+        }
+      }, 50);
+    };
+
+    const isElementInViewport = (el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0;
+    };
+
     const toggleMute = (post, index) => {
-      if (!post.mediaMuted) post.mediaMuted = post.media_urls.map(() => true);
+      if (!post.mediaMuted) post.mediaMuted = post.media_urls.map(() => false);
       post.mediaMuted[index] = !post.mediaMuted[index];
       const video = document.getElementById(`video-${post.id}-${index}`);
       if (video) video.muted = post.mediaMuted[index];
@@ -315,20 +337,36 @@ const app = createApp({
       }
     };
 
-    const handleDoubleClickLike = (event, post) => {
-      const rect = event.currentTarget.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const heart = document.createElement('div');
-      heart.className = 'double-click-heart';
-      heart.style.left = x + 'px';
-      heart.style.top = y + 'px';
-      heart.innerHTML = '<svg viewBox="0 0 24 24" fill="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
-      event.currentTarget.appendChild(heart);
-      setTimeout(() => heart.remove(), 800);
-      if (!post.likedByUser) {
-        toggleLike(post);
-      }
+    let clickTimer = null;
+    let clickCount = 0;
+
+    const handleMultipleClickLike = (event, post) => {
+      clickCount++;
+      if (clickTimer) clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => {
+        const heartsCount = Math.floor(clickCount / 2);
+        if (heartsCount > 0) {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const baseX = event.clientX - rect.left;
+          const baseY = event.clientY - rect.top;
+          for (let i = 0; i < heartsCount; i++) {
+            const offsetX = (Math.random() - 0.5) * 40;
+            const offsetY = (Math.random() - 0.5) * 40;
+            const heart = document.createElement('div');
+            heart.className = 'double-click-heart';
+            heart.style.left = (baseX + offsetX) + 'px';
+            heart.style.top = (baseY + offsetY) + 'px';
+            heart.innerHTML = '<svg viewBox="0 0 24 24" fill="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+            event.currentTarget.appendChild(heart);
+            setTimeout(() => heart.remove(), 800);
+          }
+          if (!post.likedByUser) {
+            toggleLike(post);
+          }
+        }
+        clickCount = 0;
+        clickTimer = null;
+      }, 300);
     };
 
     const setupVideoObservers = () => {
@@ -338,8 +376,6 @@ const app = createApp({
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           const video = entry.target;
-          const postId = video.dataset.postId;
-          const index = video.dataset.index;
           if (entry.isIntersecting) {
             pauseOtherVideos(video);
             video.play().catch(() => {});
@@ -347,7 +383,7 @@ const app = createApp({
             video.pause();
           }
         });
-      }, { threshold: 0.5 });
+      }, { threshold: 0.6 });
       document.querySelectorAll('video').forEach(video => {
         observer.observe(video);
         videoObservers.set(video.id, observer);
@@ -374,6 +410,25 @@ const app = createApp({
 
     const resetVideoSpeed = (video) => {
       video.playbackRate = 1.0;
+    };
+
+    const handleSwipe = (event, post) => {
+      if (!post.media_urls || post.media_urls.length <= 1) return;
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+      const diff = touch.clientX - (post.touchStartX || 0);
+      if (Math.abs(diff) > 50) {
+        if (diff < 0) {
+          nextMedia(post);
+        } else {
+          prevMedia(post);
+        }
+      }
+      post.touchStartX = null;
+    };
+
+    const handleTouchStart = (event, post) => {
+      post.touchStartX = event.touches[0].clientX;
     };
 
     onMounted(() => {
@@ -426,9 +481,11 @@ const app = createApp({
       closeCreatePostModal,
       formatNumber,
       handleVideoClick,
-      handleDoubleClickLike,
+      handleMultipleClickLike,
       handleVideoTouchSpeed,
       resetVideoSpeed,
+      handleSwipe,
+      handleTouchStart,
     };
   },
   template: `
@@ -473,12 +530,14 @@ const app = createApp({
             </div>
           </div>
 
-          <div v-if="post.media_urls && post.media_urls.length > 0" class="media-container small">
+          <div v-if="post.media_urls && post.media_urls.length > 0" class="media-container small"
+               @touchstart="handleTouchStart($event, post)"
+               @touchend="handleSwipe($event, post)">
             <div class="media-slider" :style="{ transform: 'translateX(-' + (post.currentMediaIndex || 0) * 100 + '%)' }">
               <div v-for="(url, idx) in post.media_urls" class="media-slide">
-                <img v-if="!isVideo(url)" :src="url" class="post-media" @dblclick="handleDoubleClickLike($event, post)">
-                <div v-else class="video-wrapper" @dblclick="handleDoubleClickLike($event, post)">
-                  <video :id="'video-'+post.id+'-'+idx" :data-post-id="post.id" :data-index="idx" :src="url" class="post-media" muted :autoplay="idx === post.currentMediaIndex" loop playsinline @click="handleVideoClick($event, post, idx)" @touchstart="handleVideoTouchSpeed($event, $event.target)" @touchend="resetVideoSpeed($event.target)" @touchcancel="resetVideoSpeed($event.target)"></video>
+                <img v-if="!isVideo(url)" :src="url" class="post-media" @click="handleMultipleClickLike($event, post)">
+                <div v-else class="video-wrapper" @click="handleMultipleClickLike($event, post)">
+                  <video :id="'video-'+post.id+'-'+idx" :data-post-id="post.id" :data-index="idx" :src="url" class="post-media" :muted="post.mediaMuted ? post.mediaMuted[idx] : false" :autoplay="false" loop playsinline @click.stop="handleVideoClick($event, post, idx)" @touchstart="handleVideoTouchSpeed($event, $event.target)" @touchend="resetVideoSpeed($event.target)" @touchcancel="resetVideoSpeed($event.target)"></video>
                   <button class="mute-btn" @click.stop="toggleMute(post, idx)">
                     <svg v-if="post.mediaMuted && post.mediaMuted[idx]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
                     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
@@ -486,10 +545,10 @@ const app = createApp({
                 </div>
               </div>
             </div>
-            <button v-if="post.media_urls.length > 1 && post.currentMediaIndex > 0" class="slider-nav prev" @click.stop="prevMedia(post)">‹</button>
-            <button v-if="post.media_urls.length > 1 && post.currentMediaIndex < post.media_urls.length - 1" class="slider-nav next" @click.stop="nextMedia(post)">›</button>
+            <button v-if="post.media_urls.length > 1 && post.currentMediaIndex > 0" class="slider-nav prev desktop-only" @click.stop="prevMedia(post)">‹</button>
+            <button v-if="post.media_urls.length > 1 && post.currentMediaIndex < post.media_urls.length - 1" class="slider-nav next desktop-only" @click.stop="nextMedia(post)">›</button>
             <div v-if="post.media_urls.length > 1" class="slider-dots">
-              <span v-for="(u, i) in post.media_urls" :key="i" class="dot" :class="{ active: i === (post.currentMediaIndex || 0) }" @click="post.currentMediaIndex = i"></span>
+              <span v-for="(u, i) in post.media_urls" :key="i" class="dot" :class="{ active: i === (post.currentMediaIndex || 0) }" @click="post.currentMediaIndex = i; handleMediaChange(post)"></span>
             </div>
           </div>
 
