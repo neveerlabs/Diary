@@ -11,6 +11,7 @@ const app = createApp({
     const showEditModal = ref(false);
     const showCommentModal = ref(false);
     const showSearchModal = ref(false);
+    const showCreatePostModal = ref(false);
     const editingPost = ref(null);
     const selectedPostForComments = ref(null);
     const editForm = reactive({ content: "", mediaUrls: "", likes: 0 });
@@ -117,6 +118,7 @@ const app = createApp({
           likes: Number(newPost.likes) || 0,
         });
         Object.assign(newPost, { content: "", mediaUrls: "", likes: 0 });
+        showCreatePostModal.value = false;
         fetchPosts();
       } catch (err) {
         alert("Gagal mempublikasikan");
@@ -283,6 +285,15 @@ const app = createApp({
       return content.substring(0, maxLength) + "...";
     };
 
+    const openCreatePostModal = () => {
+      showCreatePostModal.value = true;
+    };
+
+    const closeCreatePostModal = () => {
+      showCreatePostModal.value = false;
+      Object.assign(newPost, { content: "", mediaUrls: "", likes: 0 });
+    };
+
     onMounted(fetchPosts);
 
     const formatDate = (iso) =>
@@ -298,6 +309,7 @@ const app = createApp({
       showEditModal,
       showCommentModal,
       showSearchModal,
+      showCreatePostModal,
       editForm,
       editingPost,
       selectedPostForComments,
@@ -322,6 +334,8 @@ const app = createApp({
       toggleExpand,
       truncateContent,
       toggleCommentLike,
+      openCreatePostModal,
+      closeCreatePostModal,
     };
   },
   template: `
@@ -337,26 +351,14 @@ const app = createApp({
             <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> {{ totalStats.likes }}</span>
             <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {{ totalStats.comments }}</span>
           </div>
+          <button class="add-post-btn" @click="openCreatePostModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
           <button class="search-icon-btn" @click="showSearchModal = true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
         </div>
       </header>
-
-      <div class="creator-card">
-        <div class="form-group">
-          <label>Deskripsi</label>
-          <textarea v-model="newPost.content" placeholder="Tulis isi hati..."></textarea>
-        </div>
-        <div class="form-row">
-          <div><label>URL Media (pisah koma)</label><input v-model="newPost.mediaUrls" placeholder="https://...jpg, https://...mp4"></div>
-          <div><label>Jumlah Like</label><input type="number" min="0" v-model.number="newPost.likes"></div>
-        </div>
-        <div style="display:flex; gap:1rem; justify-content:flex-end">
-          <button class="btn btn-outline" @click="newPost = {content:'', mediaUrls:'', likes:0}">Bersihkan</button>
-          <button class="btn btn-primary" @click="publishPost">Terbitkan</button>
-        </div>
-      </div>
 
       <div class="feed">
         <div v-if="filteredPosts.length === 0" class="empty-state">Belum ada postingan.</div>
@@ -370,7 +372,9 @@ const app = createApp({
               <span class="timestamp">{{ formatDate(post.timestamp) }}</span>
             </div>
             <div class="post-menu">
-              <button class="menu-btn" @click.stop="post.showMenu = !post.showMenu">•••</button>
+              <button class="menu-btn" @click.stop="post.showMenu = !post.showMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
               <div v-if="post.showMenu" class="menu-dropdown">
                 <button @click="deletePost(post.id)">Hapus</button>
               </div>
@@ -453,6 +457,29 @@ const app = createApp({
         </div>
       </footer>
 
+      <div v-if="showCreatePostModal" class="modal-overlay" @click.self="closeCreatePostModal">
+        <div class="modal create-post-modal">
+          <div class="modal-header">
+            <h3>Buat Postingan Baru</h3>
+            <button @click="closeCreatePostModal" class="modal-close-btn">
+              <svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="form-group">
+            <label>Deskripsi</label>
+            <textarea v-model="newPost.content" placeholder="Masukkan deskripsi..."></textarea>
+          </div>
+          <div class="form-row">
+            <div><label>URL Media</label><input v-model="newPost.mediaUrls" placeholder="https://...jpg, https://...mp4"></div>
+            <div><label>Jumlah Like</label><input type="number" min="0" v-model.number="newPost.likes"></div>
+          </div>
+          <div class="modal-actions">
+            <button @click="closeCreatePostModal" class="btn">Batal</button>
+            <button @click="publishPost" class="btn btn-primary">Terbitkan</button>
+          </div>
+        </div>
+      </div>
+
       <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal=false">
         <div class="modal edit-modal">
           <div class="modal-header">
@@ -492,7 +519,9 @@ const app = createApp({
                   <button class="comment-reply">Balas</button>
                 </div>
               </div>
-              <button @click="deleteComment(c.id)" class="delete-comment">🗑️</button>
+              <button @click="deleteComment(c.id)" class="delete-comment">
+                <svg width="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              </button>
             </li>
           </ul>
           <div class="add-comment">
