@@ -1,20 +1,20 @@
 const { createApp, ref, reactive, computed, onMounted } = Vue;
 
-const API_BASE = '/api';
+const API_BASE = "/api";
 
 const app = createApp({
   setup() {
     const posts = ref([]);
-    const searchQuery = ref('');
-    const sortBy = ref('newest');
+    const searchQuery = ref("");
+    const sortBy = ref("newest");
     const showModal = ref(false);
     const editingPost = ref(null);
-    const editForm = reactive({ content: '', mediaUrls: '', likes: 0 });
+    const editForm = reactive({ content: "", mediaUrls: "", likes: 0 });
 
     const newPost = reactive({
-      content: '',
-      mediaUrls: '',
-      likes: 0
+      content: "",
+      mediaUrls: "",
+      likes: 0,
     });
 
     const expandedPosts = ref(new Set());
@@ -22,12 +22,12 @@ const app = createApp({
     const fetchPosts = async () => {
       try {
         const res = await axios.get(`${API_BASE}/posts`);
-        posts.value = res.data.map(p => ({
+        posts.value = res.data.map((p) => ({
           ...p,
           showComments: false,
           currentMediaIndex: 0,
           mediaMuted: p.media_urls ? p.media_urls.map(() => true) : [],
-          comments: p.comments || []
+          comments: p.comments || [],
         }));
       } catch (err) {
         console.error(err);
@@ -36,53 +36,68 @@ const app = createApp({
 
     const extractTags = (text) => {
       const matches = text.match(/#(\w+)/g) || [];
-      return matches.map(tag => tag.slice(1).toLowerCase());
+      return matches.map((tag) => tag.slice(1).toLowerCase());
     };
 
     const filteredPosts = computed(() => {
       let result = [...posts.value];
       if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase();
-        result = result.filter(p => p.content.toLowerCase().includes(q));
+        result = result.filter((p) => p.content.toLowerCase().includes(q));
       }
-      if (sortBy.value === 'newest') result.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-      if (sortBy.value === 'oldest') result.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-      if (sortBy.value === 'mostLiked') result.sort((a,b) => b.likes - a.likes);
-      if (sortBy.value === 'mostCommented') result.sort((a,b) => b.comments.length - a.comments.length);
+      if (sortBy.value === "newest")
+        result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      if (sortBy.value === "oldest")
+        result.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      if (sortBy.value === "mostLiked")
+        result.sort((a, b) => b.likes - a.likes);
+      if (sortBy.value === "mostCommented")
+        result.sort((a, b) => b.comments.length - a.comments.length);
       return result;
     });
 
     const totalStats = computed(() => {
       const totalLikes = posts.value.reduce((acc, p) => acc + p.likes, 0);
-      const totalComments = posts.value.reduce((acc, p) => acc + p.comments.length, 0);
-      return { posts: posts.value.length, likes: totalLikes, comments: totalComments };
+      const totalComments = posts.value.reduce(
+        (acc, p) => acc + p.comments.length,
+        0,
+      );
+      return {
+        posts: posts.value.length,
+        likes: totalLikes,
+        comments: totalComments,
+      };
     });
 
     const publishPost = async () => {
-      if (!newPost.content.trim() || newPost.content.length < 3) return alert('Deskripsi minimal 3 karakter');
-      const mediaArray = newPost.mediaUrls.split(',').map(u => u.trim()).filter(u => u !== '');
+      if (!newPost.content.trim() || newPost.content.length < 3)
+        return alert("Deskripsi minimal 3 karakter");
+      const mediaArray = newPost.mediaUrls
+        .split(",")
+        .map((u) => u.trim())
+        .filter((u) => u !== "");
       const extractedTags = extractTags(newPost.content);
       try {
         await axios.post(`${API_BASE}/posts`, {
           content: newPost.content,
           mediaUrls: mediaArray,
           tags: extractedTags,
-          likes: Number(newPost.likes) || 0
+          likes: Number(newPost.likes) || 0,
         });
-        Object.assign(newPost, { content: '', mediaUrls: '', likes: 0 });
+        Object.assign(newPost, { content: "", mediaUrls: "", likes: 0 });
         fetchPosts();
       } catch (err) {
-        alert('Gagal mempublikasikan');
+        alert("Gagal mempublikasikan");
       }
     };
 
     const deletePost = async (id) => {
-      if (!confirm('Hapus postingan ini?')) return;
+      if (!confirm("Hapus postingan ini?")) return;
       try {
         await axios.delete(`${API_BASE}/posts/${id}`);
         fetchPosts();
       } catch (err) {
-        alert('Gagal menghapus');
+        alert("Gagal menghapus");
       }
     };
 
@@ -105,36 +120,42 @@ const app = createApp({
     const openEditModal = (post) => {
       editingPost.value = post;
       editForm.content = post.content;
-      editForm.mediaUrls = post.media_urls ? post.media_urls.join(', ') : '';
+      editForm.mediaUrls = post.media_urls ? post.media_urls.join(", ") : "";
       editForm.likes = post.likes;
       showModal.value = true;
     };
 
     const saveEdit = async () => {
       if (!editingPost.value) return;
-      const mediaArray = editForm.mediaUrls.split(',').map(u => u.trim()).filter(u => u !== '');
+      const mediaArray = editForm.mediaUrls
+        .split(",")
+        .map((u) => u.trim())
+        .filter((u) => u !== "");
       const extractedTags = extractTags(editForm.content);
       try {
         await axios.put(`${API_BASE}/posts/${editingPost.value.id}`, {
           content: editForm.content,
           mediaUrls: mediaArray,
           tags: extractedTags,
-          likes: Number(editForm.likes)
+          likes: Number(editForm.likes),
         });
         showModal.value = false;
         fetchPosts();
       } catch (err) {
-        alert('Gagal menyimpan');
+        alert("Gagal menyimpan");
       }
     };
 
     const addComment = async (postId, commentText, parentId = null) => {
       if (!commentText.trim()) return;
       try {
-        await axios.post(`${API_BASE}/posts/${postId}/comments`, { text: commentText, parentId });
+        await axios.post(`${API_BASE}/posts/${postId}/comments`, {
+          text: commentText,
+          parentId,
+        });
         fetchPosts();
       } catch (err) {
-        alert('Gagal menambah komentar');
+        alert("Gagal menambah komentar");
       }
     };
 
@@ -143,7 +164,7 @@ const app = createApp({
         await axios.delete(`${API_BASE}/posts/comments/${commentId}`);
         fetchPosts();
       } catch (err) {
-        alert('Gagal menghapus komentar');
+        alert("Gagal menghapus komentar");
       }
     };
 
@@ -165,13 +186,16 @@ const app = createApp({
 
     const nextMedia = (post) => {
       if (post.media_urls && post.media_urls.length > 0) {
-        post.currentMediaIndex = (post.currentMediaIndex + 1) % post.media_urls.length;
+        post.currentMediaIndex =
+          (post.currentMediaIndex + 1) % post.media_urls.length;
       }
     };
 
     const prevMedia = (post) => {
       if (post.media_urls && post.media_urls.length > 0) {
-        post.currentMediaIndex = (post.currentMediaIndex - 1 + post.media_urls.length) % post.media_urls.length;
+        post.currentMediaIndex =
+          (post.currentMediaIndex - 1 + post.media_urls.length) %
+          post.media_urls.length;
       }
     };
 
@@ -183,7 +207,10 @@ const app = createApp({
     };
 
     const isVideo = (url) => {
-      return /\.(mp4|webm|ogg|mov|m3u8|avi|mkv)($|\?)/i.test(url) || url.includes('video');
+      return (
+        /\.(mp4|webm|ogg|mov|m3u8|avi|mkv)($|\?)/i.test(url) ||
+        url.includes("video")
+      );
     };
 
     const toggleExpand = (postId) => {
@@ -196,18 +223,43 @@ const app = createApp({
 
     const truncateContent = (content, maxLength = 100) => {
       if (content.length <= maxLength) return content;
-      return content.substring(0, maxLength) + '...';
+      return content.substring(0, maxLength) + "...";
     };
 
     onMounted(fetchPosts);
 
-    const formatDate = (iso) => new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    const formatDate = (iso) =>
+      new Date(iso).toLocaleString("id-ID", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
 
     return {
-      posts, searchQuery, sortBy, newPost, showModal, editForm, editingPost,
-      filteredPosts, totalStats, publishPost, deletePost, toggleLike, openEditModal, saveEdit,
-      addComment, deleteComment, formatDate, nextMedia, prevMedia, toggleMute, isVideo,
-      expandedPosts, toggleExpand, truncateContent, toggleCommentLike
+      posts,
+      searchQuery,
+      sortBy,
+      newPost,
+      showModal,
+      editForm,
+      editingPost,
+      filteredPosts,
+      totalStats,
+      publishPost,
+      deletePost,
+      toggleLike,
+      openEditModal,
+      saveEdit,
+      addComment,
+      deleteComment,
+      formatDate,
+      nextMedia,
+      prevMedia,
+      toggleMute,
+      isVideo,
+      expandedPosts,
+      toggleExpand,
+      truncateContent,
+      toggleCommentLike,
     };
   },
   template: `
@@ -261,8 +313,10 @@ const app = createApp({
             <div class="avatar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
             </div>
-            <span class="username">neverlabs</span>
-            <span class="timestamp">{{ formatDate(post.timestamp) }}</span>
+            <div class="user-info">
+              <span class="username">neverlabs</span>
+              <span class="timestamp">{{ formatDate(post.timestamp) }}</span>
+            </div>
             <div class="post-menu">
               <button class="menu-btn" @click.stop="post.showMenu = !post.showMenu">•••</button>
               <div v-if="post.showMenu" class="menu-dropdown">
@@ -381,7 +435,7 @@ const app = createApp({
         </div>
       </div>
     </div>
-  `
+  `,
 });
 
-app.mount('#app');
+app.mount("#app");
