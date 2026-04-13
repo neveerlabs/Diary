@@ -80,7 +80,7 @@ CREATE TABLE comments (
 ---
 
 <div align="center">
-   © 2026 Neverlabs. All rights reserved.<br>
+   © 2026 Neverlabs. All rights reserved.
    
    [![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://instagram.com/neveerlabs)
    [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/neveerlabs)
