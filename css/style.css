@@ -31,7 +31,7 @@ body {
 #app {
   max-width: 900px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 0 1.5rem 1.5rem;
 }
 
 button,
@@ -45,6 +45,7 @@ select {
 
 button {
   cursor: pointer;
+  background: none;
 }
 
 .container {
@@ -54,12 +55,18 @@ button {
 }
 
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 1rem;
+  padding: 1rem 0;
   border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.85);
 }
 
 .brand {
@@ -82,6 +89,32 @@ button {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-icon-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  color: var(--text-muted);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-icon-btn:hover {
+  color: var(--primary);
+}
+
+.search-icon-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
 .stats {
@@ -111,6 +144,7 @@ button {
   padding: 1.75rem;
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
+  margin-top: 1rem;
 }
 
 .form-group {
@@ -196,50 +230,6 @@ textarea {
 .btn-danger:hover {
   background: var(--danger);
   color: white;
-}
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--surface);
-  padding: 0.5rem 1.5rem;
-  border-radius: 40px;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--bg);
-  padding: 0.2rem 1rem;
-  border-radius: 40px;
-  flex: 2;
-  min-width: 200px;
-}
-
-.search-box svg {
-  width: 20px;
-  height: 20px;
-  stroke: var(--text-muted);
-}
-
-.search-box input {
-  background: transparent;
-  border: none;
-  padding: 0.6rem 0;
-}
-
-.filter-group {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.filter-group select {
-  width: auto;
-  padding: 0.5rem 1rem;
 }
 
 .feed {
@@ -490,20 +480,6 @@ textarea {
   align-items: center;
 }
 
-.like-wrapper {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-}
-
-.like-count {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  line-height: 1;
-}
-
 .action-btn {
   background: none;
   border: none;
@@ -525,15 +501,22 @@ textarea {
   height: 24px;
 }
 
-.save-modern svg {
-  width: 24px;
-  height: 24px;
+.like-wrapper,
+.comment-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
 }
 
-.post-likes {
+.like-count,
+.comment-count {
+  font-size: 0.85rem;
   font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+  line-height: 1;
+  min-width: 20px;
+  text-align: left;
 }
 
 .post-content {
@@ -554,102 +537,6 @@ textarea {
   font-weight: bold;
   cursor: pointer;
   margin-left: 4px;
-}
-
-.comment-section {
-  margin-top: 1.5rem;
-  background: var(--bg);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
-}
-
-.comment-list {
-  list-style: none;
-  max-height: 250px;
-  overflow-y: auto;
-  margin-bottom: 1rem;
-}
-
-.comment-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.comment-content {
-  flex: 1;
-}
-
-.comment-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.comment-like,
-.comment-reply {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.comment-like svg {
-  width: 14px;
-  height: 14px;
-}
-
-.delete-comment {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px;
-  font-size: 1rem;
-}
-
-.delete-comment:hover {
-  color: var(--danger);
-}
-
-.add-comment {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.add-comment input {
-  flex: 1;
-}
-
-.send-btn {
-  background: var(--primary);
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.send-btn:hover {
-  background: var(--primary-hover);
-  transform: scale(1.05);
-}
-
-.send-btn svg {
-  width: 20px;
-  height: 20px;
 }
 
 .footer {
@@ -695,15 +582,18 @@ textarea {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .modal {
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 2rem;
-  width: 90%;
-  max-width: 550px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 500px;
   border: 1px solid var(--border);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-header {
@@ -713,32 +603,166 @@ textarea {
   margin-bottom: 1.5rem;
 }
 
+.modal-header h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  color: var(--text);
+}
+
+.comment-modal .comment-list {
+  list-style: none;
+  max-height: 350px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.comment-modal .comment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.comment-modal .comment-content {
+  flex: 1;
+}
+
+.comment-modal .comment-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.comment-modal .comment-like,
+.comment-modal .comment-reply {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.comment-modal .comment-like svg {
+  width: 14px;
+  height: 14px;
+}
+
+.comment-modal .delete-comment {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1rem;
+}
+
+.comment-modal .delete-comment:hover {
+  color: var(--danger);
+}
+
+.comment-modal .add-comment {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.comment-modal .add-comment input {
+  flex: 1;
+}
+
+.comment-modal .send-btn {
+  background: var(--primary);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.comment-modal .send-btn:hover {
+  background: var(--primary-hover);
+  transform: scale(1.05);
+}
+
+.comment-modal .send-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.search-modal .search-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 0.5rem 1rem;
+}
+
+.search-modal .search-input-wrapper svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--text-muted);
+  margin-right: 0.5rem;
+}
+
+.search-modal .search-input-wrapper input {
+  background: transparent;
+  border: none;
+  padding: 0.75rem 0;
+  width: 100%;
+}
+
+.edit-modal textarea,
+.edit-modal input {
+  margin-top: 1rem;
+}
+
+.edit-modal .modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
 @media (max-width: 600px) {
   #app {
-    padding: 1rem;
-  }
-
-  .stats {
-    display: none;
-  }
-
-  .controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-group {
-    flex-wrap: wrap;
+    padding: 0 1rem 1rem;
   }
 
   .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
+    padding: 0.75rem 0;
   }
 
   .brand h1 {
     font-size: 1.5rem;
+  }
+
+  .stats {
+    display: none;
   }
 
   .creator-card {
@@ -758,16 +782,13 @@ textarea {
     height: 22px;
   }
 
-  .like-count {
+  .like-count,
+  .comment-count {
     font-size: 0.8rem;
   }
 
   .post-content {
     font-size: 0.9rem;
-  }
-
-  .comment-section {
-    padding: 0.75rem;
   }
 
   .footer {
@@ -778,6 +799,11 @@ textarea {
 
   .social-links {
     justify-content: center;
+  }
+
+  .modal {
+    padding: 1.25rem;
+    max-width: 95%;
   }
 }
 
