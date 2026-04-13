@@ -74,7 +74,6 @@ CREATE TABLE comments (
 ---
 
 ### Catatan
-
 * Semua data postingan dan komentar disimpan di database `diary`.
 * Like postingan dan komentar dapat diatur langsung melalui frontend (termasuk nilai awal).
 * Server backend juga menyajikan file statis (HTML, CSS, JS) sehingga cukup akses `http://localhost:5000`.
