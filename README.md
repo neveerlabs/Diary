@@ -41,8 +41,6 @@ Aplikasi jurnal pribadi modern dengan fitur posting gambar/video, like, komentar
    ```
 8. Buka browser dan masuk ke `http://localhost:5000`
 
----
-
 ### Konfigurasi Database
 Database tidak dibuat otomatis. Anda harus membuat database dan tabel secara manual.
 
@@ -78,3 +76,14 @@ CREATE TABLE comments (
 * Semua data postingan dan komentar disimpan di database `diary`.
 * Like postingan dan komentar dapat diatur langsung melalui frontend (termasuk nilai awal).
 * Server backend juga menyajikan file statis (HTML, CSS, JS) sehingga cukup akses `http://localhost:5000`.
+
+---
+
+<div align="center">
+   © 2026 Neverlabs. All rights reserved.<br>
+   
+   [![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://instagram.com/neveerlabs)
+   [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/neveerlabs)
+   [![Telegram](https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/Neverlabs)
+   [![WhatsApp](https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/628561765372)
+</div>
