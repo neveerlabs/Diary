@@ -782,6 +782,35 @@ button {
   border-color: var(--primary);
 }
 
+.double-click-heart {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: heartFloat 0.8s ease-out forwards;
+  z-index: 20;
+}
+
+.double-click-heart svg {
+  width: 60px;
+  height: 60px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+@keyframes heartFloat {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(-50%, -80%) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -120%) scale(1);
+  }
+}
+
 @media (max-width: 600px) {
   #app {
     padding: 0 1rem 1rem;
