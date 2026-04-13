@@ -68,6 +68,22 @@ CREATE TABLE comments (
   parent_id VARCHAR(30) DEFAULT NULL,
   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS post_likes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  post_id VARCHAR(50) NOT NULL,
+  user_ip VARCHAR(45) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_like (post_id, user_ip)
+);
+
+CREATE TABLE IF NOT EXISTS comment_likes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  comment_id VARCHAR(50) NOT NULL,
+  user_ip VARCHAR(45) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_comment_like (comment_id, user_ip)
+);
 ```
 > *Setelah tabel dibuat, aplikasi siap digunakan.*
 
