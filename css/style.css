@@ -14,7 +14,12 @@
   --transition: all 0.2s ease;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--bg);
@@ -22,17 +27,26 @@ body {
   line-height: 1.6;
   min-height: 100vh;
 }
+
 #app {
   max-width: 900px;
   margin: 0 auto;
   padding: 1.5rem;
 }
-button, input, textarea, select {
+
+button,
+input,
+textarea,
+select {
   font-family: inherit;
   border: none;
   outline: none;
 }
-button { cursor: pointer; }
+
+button {
+  cursor: pointer;
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -47,17 +61,20 @@ button { cursor: pointer; }
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--border);
 }
+
 .brand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
+
 .brand svg {
   width: 36px;
   height: 36px;
   stroke: var(--primary);
   fill: none;
 }
+
 .brand h1 {
   font-size: 1.8rem;
   font-weight: 700;
@@ -66,6 +83,7 @@ button { cursor: pointer; }
   background-clip: text;
   color: transparent;
 }
+
 .stats {
   display: flex;
   gap: 1.5rem;
@@ -73,6 +91,7 @@ button { cursor: pointer; }
   padding: 0.4rem 1.5rem;
   border-radius: 40px;
 }
+
 .stat-item {
   display: flex;
   align-items: center;
@@ -80,6 +99,7 @@ button { cursor: pointer; }
   font-size: 0.9rem;
   color: var(--text-muted);
 }
+
 .stat-item svg {
   width: 18px;
   height: 18px;
@@ -92,9 +112,11 @@ button { cursor: pointer; }
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
 }
+
 .form-group {
   margin-bottom: 1.5rem;
 }
+
 label {
   display: block;
   font-size: 0.8rem;
@@ -103,7 +125,10 @@ label {
   color: var(--text-muted);
   margin-bottom: 0.4rem;
 }
-input, textarea, select {
+
+input,
+textarea,
+select {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -113,16 +138,25 @@ input, textarea, select {
   font-size: 1rem;
   transition: var(--transition);
 }
-input:focus, textarea:focus, select:focus {
+
+input:focus,
+textarea:focus,
+select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
 }
-textarea { min-height: 120px; resize: vertical; }
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
 }
+
 .btn {
   padding: 0.7rem 1.8rem;
   border-radius: 40px;
@@ -135,22 +169,30 @@ textarea { min-height: 120px; resize: vertical; }
   border: 1px solid var(--border);
   transition: var(--transition);
 }
+
 .btn-primary {
   background: var(--primary);
   border-color: var(--primary);
   color: white;
 }
+
 .btn-primary:hover {
   background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(59,130,246,0.3);
 }
-.btn-outline:hover { background: var(--surface); border-color: var(--primary); }
+
+.btn-outline:hover {
+  background: var(--surface);
+  border-color: var(--primary);
+}
+
 .btn-danger {
   background: rgba(239,68,68,0.15);
   border-color: var(--danger);
   color: #fca5a5;
 }
+
 .btn-danger:hover {
   background: var(--danger);
   color: white;
@@ -166,6 +208,7 @@ textarea { min-height: 120px; resize: vertical; }
   padding: 0.5rem 1.5rem;
   border-radius: 40px;
 }
+
 .search-box {
   display: flex;
   align-items: center;
@@ -176,16 +219,24 @@ textarea { min-height: 120px; resize: vertical; }
   flex: 2;
   min-width: 200px;
 }
-.search-box svg { width: 20px; height: 20px; stroke: var(--text-muted); }
+
+.search-box svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--text-muted);
+}
+
 .search-box input {
   background: transparent;
   border: none;
   padding: 0.6rem 0;
 }
+
 .filter-group {
   display: flex;
   gap: 0.75rem;
 }
+
 .filter-group select {
   width: auto;
   padding: 0.5rem 1rem;
@@ -196,6 +247,7 @@ textarea { min-height: 120px; resize: vertical; }
   flex-direction: column;
   gap: 1.75rem;
 }
+
 .post-card {
   background: var(--surface);
   border-radius: var(--radius);
@@ -205,13 +257,21 @@ textarea { min-height: 120px; resize: vertical; }
   transition: var(--transition);
   animation: fadeSlide 0.3s ease;
 }
+
 .post-card:hover {
   border-color: var(--primary);
   transform: translateY(-2px);
 }
+
 @keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .post-user {
@@ -220,6 +280,7 @@ textarea { min-height: 120px; resize: vertical; }
   gap: 0.75rem;
   width: 100%;
 }
+
 .avatar {
   width: 32px;
   height: 32px;
@@ -231,30 +292,36 @@ textarea { min-height: 120px; resize: vertical; }
   border: 1px solid var(--border);
   flex-shrink: 0;
 }
+
 .avatar svg {
   width: 20px;
   height: 20px;
   stroke: var(--text-muted);
 }
+
 .user-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
+
 .username {
   font-weight: 600;
   color: var(--text);
   font-size: 0.95rem;
 }
+
 .timestamp {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
+
 .post-menu {
   margin-left: auto;
   position: relative;
   flex-shrink: 0;
 }
+
 .menu-btn {
   background: none;
   border: none;
@@ -263,6 +330,7 @@ textarea { min-height: 120px; resize: vertical; }
   color: var(--text-muted);
   padding: 0 4px;
 }
+
 .menu-dropdown {
   position: absolute;
   right: 0;
@@ -274,6 +342,7 @@ textarea { min-height: 120px; resize: vertical; }
   z-index: 10;
   min-width: 120px;
 }
+
 .menu-dropdown button {
   display: block;
   width: 100%;
@@ -284,6 +353,7 @@ textarea { min-height: 120px; resize: vertical; }
   text-align: left;
   cursor: pointer;
 }
+
 .menu-dropdown button:hover {
   background: var(--surface-light);
 }
@@ -295,16 +365,19 @@ textarea { min-height: 120px; resize: vertical; }
   overflow: hidden;
   background: #000;
 }
+
 .media-container.small .post-media {
   max-height: 350px;
   width: 100%;
   object-fit: contain;
   background: #000;
 }
+
 .media-slider {
   display: flex;
   transition: transform 0.3s ease;
 }
+
 .media-slide {
   flex: 0 0 100%;
   position: relative;
@@ -313,6 +386,7 @@ textarea { min-height: 120px; resize: vertical; }
   justify-content: center;
   background: #000;
 }
+
 .post-media {
   width: 100%;
   height: auto;
@@ -320,6 +394,7 @@ textarea { min-height: 120px; resize: vertical; }
   object-fit: contain;
   display: block;
 }
+
 .video-wrapper {
   position: relative;
   width: 100%;
@@ -327,11 +402,13 @@ textarea { min-height: 120px; resize: vertical; }
   justify-content: center;
   background: #000;
 }
+
 .video-wrapper video {
   width: 100%;
   max-height: 350px;
   object-fit: contain;
 }
+
 .mute-btn {
   position: absolute;
   bottom: 12px;
@@ -348,10 +425,12 @@ textarea { min-height: 120px; resize: vertical; }
   backdrop-filter: blur(4px);
   cursor: pointer;
 }
+
 .mute-btn svg {
   width: 20px;
   height: 20px;
 }
+
 .slider-nav {
   position: absolute;
   top: 50%;
@@ -369,8 +448,15 @@ textarea { min-height: 120px; resize: vertical; }
   cursor: pointer;
   backdrop-filter: blur(4px);
 }
-.slider-nav.prev { left: 8px; }
-.slider-nav.next { right: 8px; }
+
+.slider-nav.prev {
+  left: 8px;
+}
+
+.slider-nav.next {
+  right: 8px;
+}
+
 .slider-dots {
   position: absolute;
   bottom: 8px;
@@ -379,6 +465,7 @@ textarea { min-height: 120px; resize: vertical; }
   display: flex;
   gap: 4px;
 }
+
 .dot {
   width: 6px;
   height: 6px;
@@ -386,17 +473,37 @@ textarea { min-height: 120px; resize: vertical; }
   background: rgba(255,255,255,0.5);
   cursor: pointer;
 }
-.dot.active { background: white; }
+
+.dot.active {
+  background: white;
+}
 
 .post-actions {
   display: flex;
   justify-content: space-between;
   margin: 0.75rem 0 0.5rem;
 }
+
 .action-group {
   display: flex;
   gap: 1rem;
+  align-items: center;
 }
+
+.like-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.like-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
 .action-btn {
   background: none;
   border: none;
@@ -408,11 +515,16 @@ textarea { min-height: 120px; resize: vertical; }
   justify-content: center;
   transition: var(--transition);
 }
-.action-btn:hover { opacity: 0.8; }
+
+.action-btn:hover {
+  opacity: 0.8;
+}
+
 .action-btn svg {
   width: 24px;
   height: 24px;
 }
+
 .save-modern svg {
   width: 24px;
   height: 24px;
@@ -423,15 +535,18 @@ textarea { min-height: 120px; resize: vertical; }
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
+
 .post-content {
   margin: 0.5rem 0;
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 0.95rem;
 }
+
 .post-content .username {
   margin-right: 0.5rem;
 }
+
 .expand-btn {
   background: none;
   border: none;
@@ -447,12 +562,14 @@ textarea { min-height: 120px; resize: vertical; }
   border-radius: var(--radius-sm);
   padding: 1rem;
 }
+
 .comment-list {
   list-style: none;
   max-height: 250px;
   overflow-y: auto;
   margin-bottom: 1rem;
 }
+
 .comment-item {
   display: flex;
   justify-content: space-between;
@@ -460,15 +577,19 @@ textarea { min-height: 120px; resize: vertical; }
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border);
 }
+
 .comment-content {
   flex: 1;
 }
+
 .comment-actions {
   display: flex;
   gap: 12px;
   margin-top: 4px;
 }
-.comment-like, .comment-reply {
+
+.comment-like,
+.comment-reply {
   background: none;
   border: none;
   color: var(--text-muted);
@@ -478,10 +599,12 @@ textarea { min-height: 120px; resize: vertical; }
   align-items: center;
   gap: 4px;
 }
+
 .comment-like svg {
   width: 14px;
   height: 14px;
 }
+
 .delete-comment {
   background: none;
   border: none;
@@ -490,15 +613,21 @@ textarea { min-height: 120px; resize: vertical; }
   padding: 4px;
   font-size: 1rem;
 }
-.delete-comment:hover { color: var(--danger); }
+
+.delete-comment:hover {
+  color: var(--danger);
+}
+
 .add-comment {
   display: flex;
   gap: 0.5rem;
   align-items: center;
 }
+
 .add-comment input {
   flex: 1;
 }
+
 .send-btn {
   background: var(--primary);
   border: none;
@@ -512,10 +641,12 @@ textarea { min-height: 120px; resize: vertical; }
   cursor: pointer;
   transition: var(--transition);
 }
+
 .send-btn:hover {
   background: var(--primary-hover);
   transform: scale(1.05);
 }
+
 .send-btn svg {
   width: 20px;
   height: 20px;
@@ -531,17 +662,22 @@ textarea { min-height: 120px; resize: vertical; }
   align-items: center;
   color: var(--text-muted);
 }
+
 .social-links {
   display: flex;
   gap: 1rem;
 }
+
 .social-links a svg {
   width: 22px;
   height: 22px;
   stroke: var(--text-muted);
   transition: var(--transition);
 }
-.social-links a:hover svg { stroke: var(--primary); }
+
+.social-links a:hover svg {
+  stroke: var(--primary);
+}
 
 .empty-state {
   text-align: center;
@@ -549,6 +685,7 @@ textarea { min-height: 120px; resize: vertical; }
   background: var(--surface);
   border-radius: var(--radius);
 }
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -559,6 +696,7 @@ textarea { min-height: 120px; resize: vertical; }
   justify-content: center;
   z-index: 1000;
 }
+
 .modal {
   background: var(--surface);
   border-radius: var(--radius);
@@ -567,6 +705,7 @@ textarea { min-height: 120px; resize: vertical; }
   max-width: 550px;
   border: 1px solid var(--border);
 }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -575,8 +714,89 @@ textarea { min-height: 120px; resize: vertical; }
 }
 
 @media (max-width: 600px) {
-  #app { padding: 1rem; }
-  .stats { display: none; }
-  .controls { flex-direction: column; align-items: stretch; }
-  .filter-group { flex-wrap: wrap; }
+  #app {
+    padding: 1rem;
+  }
+
+  .stats {
+    display: none;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    flex-wrap: wrap;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .brand h1 {
+    font-size: 1.5rem;
+  }
+
+  .creator-card {
+    padding: 1.25rem;
+  }
+
+  .post-card {
+    padding: 1.25rem;
+  }
+
+  .action-group {
+    gap: 0.5rem;
+  }
+
+  .action-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .like-count {
+    font-size: 0.8rem;
+  }
+
+  .post-content {
+    font-size: 0.9rem;
+  }
+
+  .comment-section {
+    padding: 0.75rem;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .social-links {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .brand svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .brand h1 {
+    font-size: 1.3rem;
+  }
+
+  .btn {
+    padding: 0.5rem 1.2rem;
+    font-size: 0.9rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
