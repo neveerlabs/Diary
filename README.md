@@ -42,6 +42,7 @@ Aplikasi jurnal pribadi modern dengan fitur posting gambar/video, like, komentar
 8. Buka browser dan masuk ke `http://localhost:5000`
 
 ### Konfigurasi Database
+
 Database tidak dibuat otomatis. Anda harus membuat database dan tabel secara manual.
 
 Jalankan perintah SQL berikut di MySQL (misalnya via phpMyAdmin, MySQL Workbench, atau command line):
@@ -73,6 +74,7 @@ CREATE TABLE comments (
 ---
 
 ### Catatan
+
 * Semua data postingan dan komentar disimpan di database `diary`.
 * Like postingan dan komentar dapat diatur langsung melalui frontend (termasuk nilai awal).
 * Server backend juga menyajikan file statis (HTML, CSS, JS) sehingga cukup akses `http://localhost:5000`.
