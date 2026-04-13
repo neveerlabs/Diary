@@ -1,15 +1,20 @@
 const { createApp, ref, reactive, computed, onMounted } = Vue;
 
 const API_BASE = "/api";
+const STORAGE_KEY_LIKED_POSTS = "diary_liked_posts";
+const STORAGE_KEY_LIKED_COMMENTS = "diary_liked_comments";
 
 const app = createApp({
   setup() {
     const posts = ref([]);
     const searchQuery = ref("");
-    const sortBy = ref("newest");
-    const showModal = ref(false);
+    const showEditModal = ref(false);
+    const showCommentModal = ref(false);
+    const showSearchModal = ref(false);
     const editingPost = ref(null);
+    const selectedPostForComments = ref(null);
     const editForm = reactive({ content: "", mediaUrls: "", likes: 0 });
+    const newCommentText = ref("");
 
     const newPost = reactive({
       content: "",
@@ -18,6 +23,33 @@ const app = createApp({
     });
 
     const expandedPosts = ref(new Set());
+
+    const getLikedPostsFromStorage = () => {
+      try {
+        return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_LIKED_POSTS) || "[]"));
+      } catch {
+        return new Set();
+      }
+    };
+
+    const getLikedCommentsFromStorage = () => {
+      try {
+        return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_LIKED_COMMENTS) || "[]"));
+      } catch {
+        return new Set();
+      }
+    };
+
+    const saveLikedPostsToStorage = (likedSet) => {
+      localStorage.setItem(STORAGE_KEY_LIKED_POSTS, JSON.stringify([...likedSet]));
+    };
+
+    const saveLikedCommentsToStorage = (likedSet) => {
+      localStorage.setItem(STORAGE_KEY_LIKED_COMMENTS, JSON.stringify([...likedSet]));
+    };
+
+    const likedPosts = ref(getLikedPostsFromStorage());
+    const likedComments = ref(getLikedCommentsFromStorage());
 
     const fetchPosts = async () => {
       try {
@@ -28,7 +60,15 @@ const app = createApp({
           currentMediaIndex: 0,
           mediaMuted: p.media_urls ? p.media_urls.map(() => true) : [],
           comments: p.comments || [],
+          likedByUser: likedPosts.value.has(p.id),
         }));
+        posts.value.forEach(post => {
+          post.comments = post.comments.map(c => ({
+            ...c,
+            likedByUser: likedComments.value.has(c.id),
+            likes: c.likes || 0,
+          }));
+        });
       } catch (err) {
         console.error(err);
       }
@@ -45,14 +85,6 @@ const app = createApp({
         const q = searchQuery.value.toLowerCase();
         result = result.filter((p) => p.content.toLowerCase().includes(q));
       }
-      if (sortBy.value === "newest")
-        result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      if (sortBy.value === "oldest")
-        result.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      if (sortBy.value === "mostLiked")
-        result.sort((a, b) => b.likes - a.likes);
-      if (sortBy.value === "mostCommented")
-        result.sort((a, b) => b.comments.length - a.comments.length);
       return result;
     });
 
@@ -107,11 +139,14 @@ const app = createApp({
           await axios.post(`${API_BASE}/posts/${post.id}/unlike`);
           post.likes = Math.max(0, post.likes - 1);
           post.likedByUser = false;
+          likedPosts.value.delete(post.id);
         } else {
           await axios.post(`${API_BASE}/posts/${post.id}/like`);
           post.likes += 1;
           post.likedByUser = true;
+          likedPosts.value.add(post.id);
         }
+        saveLikedPostsToStorage(likedPosts.value);
       } catch (err) {
         console.error(err);
       }
@@ -122,7 +157,7 @@ const app = createApp({
       editForm.content = post.content;
       editForm.mediaUrls = post.media_urls ? post.media_urls.join(", ") : "";
       editForm.likes = post.likes;
-      showModal.value = true;
+      showEditModal.value = true;
     };
 
     const saveEdit = async () => {
@@ -139,21 +174,36 @@ const app = createApp({
           tags: extractedTags,
           likes: Number(editForm.likes),
         });
-        showModal.value = false;
+        showEditModal.value = false;
         fetchPosts();
       } catch (err) {
         alert("Gagal menyimpan");
       }
     };
 
-    const addComment = async (postId, commentText, parentId = null) => {
-      if (!commentText.trim()) return;
+    const openCommentModal = (post) => {
+      selectedPostForComments.value = post;
+      newCommentText.value = "";
+      showCommentModal.value = true;
+    };
+
+    const closeCommentModal = () => {
+      showCommentModal.value = false;
+      selectedPostForComments.value = null;
+    };
+
+    const addComment = async () => {
+      if (!newCommentText.value.trim()) return;
+      const post = selectedPostForComments.value;
+      if (!post) return;
       try {
-        await axios.post(`${API_BASE}/posts/${postId}/comments`, {
-          text: commentText,
-          parentId,
+        await axios.post(`${API_BASE}/posts/${post.id}/comments`, {
+          text: newCommentText.value,
         });
-        fetchPosts();
+        await fetchPosts();
+        const updatedPost = posts.value.find(p => p.id === post.id);
+        if (updatedPost) selectedPostForComments.value = updatedPost;
+        newCommentText.value = "";
       } catch (err) {
         alert("Gagal menambah komentar");
       }
@@ -162,7 +212,11 @@ const app = createApp({
     const deleteComment = async (commentId) => {
       try {
         await axios.delete(`${API_BASE}/posts/comments/${commentId}`);
-        fetchPosts();
+        await fetchPosts();
+        if (selectedPostForComments.value) {
+          const updatedPost = posts.value.find(p => p.id === selectedPostForComments.value.id);
+          if (updatedPost) selectedPostForComments.value = updatedPost;
+        }
       } catch (err) {
         alert("Gagal menghapus komentar");
       }
@@ -174,11 +228,14 @@ const app = createApp({
           await axios.post(`${API_BASE}/posts/comments/${comment.id}/unlike`);
           comment.likes = Math.max(0, (comment.likes || 0) - 1);
           comment.likedByUser = false;
+          likedComments.value.delete(comment.id);
         } else {
           await axios.post(`${API_BASE}/posts/comments/${comment.id}/like`);
           comment.likes = (comment.likes || 0) + 1;
           comment.likedByUser = true;
+          likedComments.value.add(comment.id);
         }
+        saveLikedCommentsToStorage(likedComments.value);
       } catch (err) {
         console.error(err);
       }
@@ -237,11 +294,14 @@ const app = createApp({
     return {
       posts,
       searchQuery,
-      sortBy,
       newPost,
-      showModal,
+      showEditModal,
+      showCommentModal,
+      showSearchModal,
       editForm,
       editingPost,
+      selectedPostForComments,
+      newCommentText,
       filteredPosts,
       totalStats,
       publishPost,
@@ -249,6 +309,8 @@ const app = createApp({
       toggleLike,
       openEditModal,
       saveEdit,
+      openCommentModal,
+      closeCommentModal,
       addComment,
       deleteComment,
       formatDate,
@@ -269,10 +331,15 @@ const app = createApp({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
           <h1>My Diary</h1>
         </div>
-        <div class="stats">
-          <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> {{ totalStats.posts }}</span>
-          <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> {{ totalStats.likes }}</span>
-          <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {{ totalStats.comments }}</span>
+        <div class="header-actions">
+          <div class="stats">
+            <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> {{ totalStats.posts }}</span>
+            <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> {{ totalStats.likes }}</span>
+            <span class="stat-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {{ totalStats.comments }}</span>
+          </div>
+          <button class="search-icon-btn" @click="showSearchModal = true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
         </div>
       </header>
 
@@ -288,21 +355,6 @@ const app = createApp({
         <div style="display:flex; gap:1rem; justify-content:flex-end">
           <button class="btn btn-outline" @click="newPost = {content:'', mediaUrls:'', likes:0}">Bersihkan</button>
           <button class="btn btn-primary" @click="publishPost">Terbitkan</button>
-        </div>
-      </div>
-
-      <div class="controls">
-        <div class="search-box">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input v-model="searchQuery" placeholder="Cari...">
-        </div>
-        <div class="filter-group">
-          <select v-model="sortBy">
-            <option value="newest">Terbaru</option>
-            <option value="oldest">Terlama</option>
-            <option value="mostLiked">Terbanyak Suka</option>
-            <option value="mostCommented">Terbanyak Komentar</option>
-          </select>
         </div>
       </div>
 
@@ -363,9 +415,12 @@ const app = createApp({
                 </button>
                 <span v-if="post.likes > 0" class="like-count">{{ post.likes }}</span>
               </div>
-              <button class="action-btn" @click="post.showComments = !post.showComments">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </button>
+              <div class="comment-wrapper">
+                <button class="action-btn" @click="openCommentModal(post)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </button>
+                <span v-if="post.comments.length > 0" class="comment-count">{{ post.comments.length }}</span>
+              </div>
               <button class="action-btn" @click="openEditModal(post)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
               </button>
@@ -383,31 +438,6 @@ const app = createApp({
               {{ expandedPosts.has(post.id) ? 'Lebih sedikit...' : 'Selengkapnya...' }}
             </button>
           </div>
-
-          <div v-if="post.showComments" class="comment-section">
-            <ul class="comment-list">
-              <li v-for="c in post.comments" :key="c.id" class="comment-item">
-                <div class="comment-content">
-                  <span class="username">neverlabs</span> {{ c.text }}
-                  <div class="comment-actions">
-                    <button class="comment-like" @click="toggleCommentLike(c)">
-                      <svg v-if="c.likedByUser" width="12" viewBox="0 0 24 24" fill="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                      <svg v-else width="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                      Suka
-                    </button>
-                    <button class="comment-reply">Balas</button>
-                  </div>
-                </div>
-                <button @click="deleteComment(c.id)" class="delete-comment">🗑️</button>
-              </li>
-            </ul>
-            <div class="add-comment">
-              <input :id="'comment-'+post.id" placeholder="Tulis komentar..." @keyup.enter="addComment(post.id, $event.target.value); $event.target.value=''">
-              <button class="send-btn" @click="addComment(post.id, document.getElementById('comment-'+post.id).value); document.getElementById('comment-'+post.id).value=''">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -423,15 +453,68 @@ const app = createApp({
         </div>
       </footer>
 
-      <div v-if="showModal" class="modal-overlay" @click.self="showModal=false">
-        <div class="modal">
-          <div class="modal-header"><h3>Edit Postingan</h3><button @click="showModal=false" class="btn-outline"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal=false">
+        <div class="modal edit-modal">
+          <div class="modal-header">
+            <h3>Edit Postingan</h3>
+            <button @click="showEditModal=false" class="modal-close-btn">
+              <svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
           <textarea v-model="editForm.content" rows="5"></textarea>
-          <input v-model="editForm.mediaUrls" placeholder="URL Media (pisah koma)" class="mt-2">
-          <input type="number" min="0" v-model.number="editForm.likes" placeholder="Jumlah Like" class="mt-2">
-          <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem">
-            <button @click="showModal=false" class="btn">Batal</button>
+          <input v-model="editForm.mediaUrls" placeholder="URL Media (pisah koma)">
+          <input type="number" min="0" v-model.number="editForm.likes" placeholder="Jumlah Like">
+          <div class="modal-actions">
+            <button @click="showEditModal=false" class="btn">Batal</button>
             <button @click="saveEdit" class="btn btn-primary">Simpan</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showCommentModal" class="modal-overlay" @click.self="closeCommentModal">
+        <div class="modal comment-modal">
+          <div class="modal-header">
+            <h3>Komentar</h3>
+            <button @click="closeCommentModal" class="modal-close-btn">
+              <svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <ul class="comment-list">
+            <li v-for="c in selectedPostForComments?.comments" :key="c.id" class="comment-item">
+              <div class="comment-content">
+                <span class="username">neverlabs</span> {{ c.text }}
+                <div class="comment-actions">
+                  <button class="comment-like" @click="toggleCommentLike(c)">
+                    <svg v-if="c.likedByUser" width="14" viewBox="0 0 24 24" fill="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <svg v-else width="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    Suka
+                  </button>
+                  <button class="comment-reply">Balas</button>
+                </div>
+              </div>
+              <button @click="deleteComment(c.id)" class="delete-comment">🗑️</button>
+            </li>
+          </ul>
+          <div class="add-comment">
+            <input v-model="newCommentText" placeholder="Tulis komentar..." @keyup.enter="addComment">
+            <button class="send-btn" @click="addComment">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showSearchModal" class="modal-overlay" @click.self="showSearchModal=false">
+        <div class="modal search-modal">
+          <div class="modal-header">
+            <h3>Cari</h3>
+            <button @click="showSearchModal=false" class="modal-close-btn">
+              <svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="search-input-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input v-model="searchQuery" placeholder="Cari postingan..." autofocus>
           </div>
         </div>
       </div>
