@@ -13,15 +13,29 @@ function getTimestamp() {
 function logInfo(msg) { console.log(`[${getTimestamp()}] [INFO]: ${msg}`); }
 function logError(msg) { console.error(`[${getTimestamp()}] [ERROR]: ${msg}`); }
 
+const getUserIdentifier = (req) => {
+  return req.ip || req.connection.remoteAddress || 'unknown';
+};
+
 router.get('/', async (req, res) => {
   try {
+    const userIp = getUserIdentifier(req);
     const [posts] = await db.query(`SELECT id, content, media_urls, tags, timestamp, likes FROM posts ORDER BY timestamp DESC`);
     for (const post of posts) {
       const [comments] = await db.query('SELECT id, text, timestamp FROM comments WHERE post_id = ? ORDER BY timestamp ASC', [post.id]);
       post.media_urls = post.media_urls ? JSON.parse(post.media_urls) : [];
       post.tags = post.tags ? JSON.parse(post.tags) : [];
       post.comments = comments;
-      post.likedByUser = false; // simulasi, bisa diatur via session nanti
+
+      const [liked] = await db.query('SELECT 1 FROM post_likes WHERE post_id = ? AND user_ip = ?', [post.id, userIp]);
+      post.likedByUser = liked.length > 0;
+
+      for (const comment of post.comments) {
+        const [commentLiked] = await db.query('SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_ip = ?', [comment.id, userIp]);
+        comment.likedByUser = commentLiked.length > 0;
+        const [likeCount] = await db.query('SELECT COUNT(*) as count FROM comment_likes WHERE comment_id = ?', [comment.id]);
+        comment.likes = likeCount[0].count;
+      }
     }
     res.json(posts);
   } catch (error) {
@@ -81,6 +95,7 @@ router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await db.query('DELETE FROM comments WHERE post_id = ?', [id]);
+    await db.query('DELETE FROM post_likes WHERE post_id = ?', [id]);
     const [result] = await db.query('DELETE FROM posts WHERE id = ?', [id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Not found' });
     logInfo(`Post deleted: ${id}`);
@@ -92,10 +107,16 @@ router.delete('/:id', async (req, res) => {
 });
 
 router.post('/:id/like', async (req, res) => {
+  const postId = req.params.id;
+  const userIp = getUserIdentifier(req);
   try {
-    await db.query('UPDATE posts SET likes = likes + 1 WHERE id = ?', [req.params.id]);
-    const [post] = await db.query('SELECT likes FROM posts WHERE id = ?', [req.params.id]);
-    res.json({ likes: post[0].likes });
+    const [existing] = await db.query('SELECT 1 FROM post_likes WHERE post_id = ? AND user_ip = ?', [postId, userIp]);
+    if (existing.length === 0) {
+      await db.query('INSERT INTO post_likes (post_id, user_ip) VALUES (?, ?)', [postId, userIp]);
+      await db.query('UPDATE posts SET likes = likes + 1 WHERE id = ?', [postId]);
+    }
+    const [post] = await db.query('SELECT likes FROM posts WHERE id = ?', [postId]);
+    res.json({ likes: post[0].likes, likedByUser: true });
   } catch (error) {
     logError(`Like failed: ${error.message}`);
     res.status(500).json({ error: 'Like failed' });
@@ -103,10 +124,15 @@ router.post('/:id/like', async (req, res) => {
 });
 
 router.post('/:id/unlike', async (req, res) => {
+  const postId = req.params.id;
+  const userIp = getUserIdentifier(req);
   try {
-    await db.query('UPDATE posts SET likes = GREATEST(likes - 1, 0) WHERE id = ?', [req.params.id]);
-    const [post] = await db.query('SELECT likes FROM posts WHERE id = ?', [req.params.id]);
-    res.json({ likes: post[0].likes });
+    const [result] = await db.query('DELETE FROM post_likes WHERE post_id = ? AND user_ip = ?', [postId, userIp]);
+    if (result.affectedRows > 0) {
+      await db.query('UPDATE posts SET likes = GREATEST(likes - 1, 0) WHERE id = ?', [postId]);
+    }
+    const [post] = await db.query('SELECT likes FROM posts WHERE id = ?', [postId]);
+    res.json({ likes: post[0].likes, likedByUser: false });
   } catch (error) {
     logError(`Unlike failed: ${error.message}`);
     res.status(500).json({ error: 'Unlike failed' });
@@ -136,21 +162,26 @@ router.post('/:id/comments', async (req, res) => {
 });
 
 router.delete('/comments/:commentId', async (req, res) => {
+  const { commentId } = req.params;
   try {
-    await db.query('DELETE FROM comments WHERE id = ?', [req.params.commentId]);
+    await db.query('DELETE FROM comment_likes WHERE comment_id = ?', [commentId]);
+    await db.query('DELETE FROM comments WHERE id = ?', [commentId]);
     res.json({ message: 'Deleted' });
   } catch (error) {
     res.status(500).json({ error: 'Failed' });
   }
 });
 
-// Like comment
 router.post('/comments/:commentId/like', async (req, res) => {
   const { commentId } = req.params;
+  const userIp = getUserIdentifier(req);
   try {
-    await db.query('UPDATE comments SET likes = COALESCE(likes, 0) + 1 WHERE id = ?', [commentId]);
-    const [comment] = await db.query('SELECT likes FROM comments WHERE id = ?', [commentId]);
-    res.json({ likes: comment[0].likes });
+    const [existing] = await db.query('SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_ip = ?', [commentId, userIp]);
+    if (existing.length === 0) {
+      await db.query('INSERT INTO comment_likes (comment_id, user_ip) VALUES (?, ?)', [commentId, userIp]);
+    }
+    const [count] = await db.query('SELECT COUNT(*) as likes FROM comment_likes WHERE comment_id = ?', [commentId]);
+    res.json({ likes: count[0].likes, likedByUser: true });
   } catch (error) {
     logError(`Like comment failed: ${error.message}`);
     res.status(500).json({ error: 'Failed' });
@@ -159,10 +190,11 @@ router.post('/comments/:commentId/like', async (req, res) => {
 
 router.post('/comments/:commentId/unlike', async (req, res) => {
   const { commentId } = req.params;
+  const userIp = getUserIdentifier(req);
   try {
-    await db.query('UPDATE comments SET likes = GREATEST(COALESCE(likes, 0) - 1, 0) WHERE id = ?', [commentId]);
-    const [comment] = await db.query('SELECT likes FROM comments WHERE id = ?', [commentId]);
-    res.json({ likes: comment[0].likes });
+    await db.query('DELETE FROM comment_likes WHERE comment_id = ? AND user_ip = ?', [commentId, userIp]);
+    const [count] = await db.query('SELECT COUNT(*) as likes FROM comment_likes WHERE comment_id = ?', [commentId]);
+    res.json({ likes: count[0].likes, likedByUser: false });
   } catch (error) {
     logError(`Unlike comment failed: ${error.message}`);
     res.status(500).json({ error: 'Failed' });
