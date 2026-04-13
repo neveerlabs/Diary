@@ -236,6 +236,11 @@ textarea { min-height: 120px; resize: vertical; }
   height: 20px;
   stroke: var(--text-muted);
 }
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 .username {
   font-weight: 600;
   color: var(--text);
@@ -244,11 +249,9 @@ textarea { min-height: 120px; resize: vertical; }
 .timestamp {
   font-size: 0.75rem;
   color: var(--text-muted);
-  margin-left: auto;
-  margin-right: 0.5rem;
 }
 .post-menu {
-  margin-left: 0;
+  margin-left: auto;
   position: relative;
   flex-shrink: 0;
 }
