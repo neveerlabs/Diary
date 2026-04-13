@@ -21,11 +21,11 @@ Aplikasi jurnal pribadi modern dengan fitur posting gambar/video, like, komentar
    ```bash
    npm install
    ```
-5. Buat file `.env` di dalam folder `backend` dengan isi:
+5. Setup file `.env` di dalam folder `backend` dengan isi:
    ```bash
    DB_HOST=localhost
    DB_USER=root
-   DB_PASSWORD=password_mysql_anda
+   DB_PASSWORD=
    DB_NAME=diary
    PORT=5000
    ```
