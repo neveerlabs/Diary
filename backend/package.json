@@ -1,7 +1,7 @@
 {
   "name": "diary-backend",
   "version": "1.0.2",
-  "description": "API untuk aplikasi Diary Feed",
+  "description": "API for My Diary Applications",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
